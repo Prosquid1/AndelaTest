@@ -18,6 +18,8 @@ import com.example.lg.andelatask.R;
 import com.example.lg.andelatask.Utilities.Constants;
 import com.example.lg.andelatask.Utilities.GitHubService;
 import com.example.lg.andelatask.Utilities.REST.ApiClient;
+import com.example.lg.andelatask.Utilities.REST.UsersRepository;
+import com.example.lg.andelatask.Utilities.REST.UsersRequestInterface;
 import com.example.lg.andelatask.Utilities.Utility;
 
 import java.util.List;
@@ -39,7 +41,7 @@ import static com.example.lg.andelatask.Utilities.UI_Utilities.displayToast;
  * Activity class showing all Java Developers in Lagos
  */
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements UsersRequestInterface{
 
     @BindView(R.id.all_users_recycler)
     RecyclerView usersRecyclerView;
@@ -109,48 +111,44 @@ public class MainActivity extends AppCompatActivity {
 
         isLoading = true;
 
-        GitHubService service = ApiClient.getClient().create(GitHubService.class);
-
-        String javaDevsLagosQuery = "search/users?q=language:java+location:lagos";
-
-        Call<GithubResponse> responseCall = service.getUsersByLocation(javaDevsLagosQuery);
-
-
-        responseCall.enqueue(new Callback<GithubResponse>() {
-            @Override
-            public void onResponse(Call<GithubResponse> call, Response<GithubResponse> response) {
-
-                isLoading = false;
-                swipeRefreshLayout.setRefreshing(false);
-
-                if (response.isSuccessful()){
-
-                    initializeRecycler(response.body().items);
-
-
-                } else {
-
-                    showProfileLoadingError(getString(R.string.generic_error));
-
-                }
-
-            }
-
-            @Override
-            public void onFailure(Call<GithubResponse> call, Throwable t) {
-
-                isLoading = false;
-
-                showProfileLoadingError(t.getMessage());
-
-            }
-        });
+        UsersRepository usersRepository = new UsersRepository(this);
+        usersRepository.getUsersData();
 
 
     }
 
 
 
+    @Override
+    public void onFetchUnsuccessful(){
+
+        completeFetchRequest();
+        showProfileLoadingError(getString(R.string.generic_error));
+    }
+
+
+    @Override
+    public void onFetchFailed(String message){
+
+        completeFetchRequest();
+        showProfileLoadingError(message);
+
+    }
+
+
+    @Override
+    public void onFetchSuccess(List<UserProfile> userProfiles){
+
+        completeFetchRequest();
+        initializeRecycler(userProfiles);
+    }
+
+
+
+    private void completeFetchRequest(){
+        isLoading = false;
+        swipeRefreshLayout.setRefreshing(false);
+    }
 
 
     /**
